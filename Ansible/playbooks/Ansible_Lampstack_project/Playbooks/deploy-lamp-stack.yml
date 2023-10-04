@@ -21,32 +21,28 @@
           - mariadb-server
           - MySQL-python
         state: installed
-    
     - name: Copy MySQL Config File to /etc/my.cnf
       template:
         src: templates/my.cnf.j2
         dest: /etc/my.cnf
-    
+        mode: 0644
     - name: Start Services for mariadb-server
       service:
         name: mariadb
         state: started
         enabled: yes
-    
     - name: Start Service for firewalld Service
       service:
         name: firewalld
         state: started
         enabled: yes
-
     - name: Allow Port 3306/tcp on firewalld
       firewalld:
         port: 3306/tcp
         permanent: true
         immediate: true
         state: enabled
-        zone: public
-    
+        zone: public    
     - name: Restart firewalld Service
       service:
         name: firewalld
@@ -58,22 +54,23 @@
       mysql_db:
         name: "{{ dbname }}"
         state: present
-    
     - name: Add Database User and Privs
       mysql_user:
         name: "{{ dbuser }}"
         password: "{{ dbpassword }}"
         priv: "*.*:ALL"
-        host: "{{hostvars['lampweb'].ansible_host}}"
+        host: "{{ hostvars['lampweb'].ansible_host }}"
         state: present
-    
     - name: Copy db-load-script.sql to /tmp/
       template:
         src: templates/db-load-script.sql.j2
         dest: /tmp/db-load-script.sql
+        mode: 0644
 
     - name: Load Inventory File to DB
       shell: mysql -f < /tmp/db-load-script.sql
+      register: result
+      when: result.rc != 0
 
   # Install Web App
 
@@ -88,44 +85,38 @@
           - php-mysql
           - git
         state: installed
-    
     - name: Start and Enable firewalld
       service:
         name: firewalld
         state: started
         enabled: yes
-    
     - name: Allow http traffic through firewalld
       firewalld:
         port: "{{ httpd_port }}/tcp"
         permanent: true
         immediate: true
         state: enabled
-    
     - name: restart firewalld
       service:
         name: firewalld
         state: restarted
-    
     - name: Set Index.php as default page in httpd.conf
       replace:
         path: /etc/httpd/conf/httpd.conf
         regexp: DirectoryIndex index.html
         replace: DirectoryIndex index.php
-    
     - name: Start and Enable httpd service
       service:
         name: httpd
         state: started
         enabled: yes
-    
     - name: Copy Code from Repository
       git:
         repo: "{{ repository }}"
         dest: /var/www/html/
         force: yes
-    
     - name: Create the index.php file
       template:
         src: templates/index.php.j2
         dest: /var/www/html/index.php
+        mode: '0644'
