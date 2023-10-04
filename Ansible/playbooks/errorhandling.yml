@@ -1,5 +1,62 @@
-# Error Handling
+# httpd.yml
 ---
-- hosts: all
+- name: Install httpd
+  hosts: all
+  gather_facts: no
+  any_errors_fatal: true
   tasks:
-    - yum:
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: present
+    - name: start service
+      service:
+        name: httpd
+        state: started
+
+# httpd_errors.yml
+- name: Install httpd
+  hosts: web1
+  gather_facts: no
+  tasks:
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: present
+    - name: Do not remove this task
+      command: /bin/false
+      register: results
+      ignore_errors: true
+    - shell: "echo {{ results.msg }} > /tmp/output"
+    - name: start service
+      service:
+        name: httpd
+        state: started
+
+# httpd_check_errors.yml
+- name: Install httpd
+  hosts: web1
+  gather_facts: no
+  tasks:
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: present
+    - name: Check httpd error logs
+      command: cat /var/log/httpd/error_log
+      register: results
+      failed_when: "'ERROR' in results.stdout"
+
+    - name: checking the results variable
+      ansible.builtin.debug:
+        var: results.stdout
+
+    - name: start service
+      service:
+        name: httpd
+        state: started
+
+    - name: Create a file
+      file:
+        path: /tmp/file
+        state: touch
