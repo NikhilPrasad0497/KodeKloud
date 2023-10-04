@@ -1,0 +1,32 @@
+# httpd.yml
+---
+- name: Install httpd
+  hosts: all
+  gather_facts: no
+  strategy: free
+  tasks:
+    - name: Install htpd
+      yum:
+        name: httpd
+        state: present
+
+    - name: start service
+      service:
+        name: httpd
+        state: started
+        
+# httpd.yml serial 1
+- name: Install httpd
+  hosts: all
+  gather_facts: no
+  serial: 1
+  tasks:
+    - name: Install htpd
+      yum:
+        name: httpd
+        state: present
+
+    - name: start service
+      service:
+        name: httpd
+        state: started
