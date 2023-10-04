@@ -45,7 +45,6 @@
     - name: Check httpd error logs
       command: cat /var/log/httpd/error_log
       register: results
-      failed_when: "'ERROR' in results.stdout"
 
     - name: checking the results variable
       ansible.builtin.debug:
@@ -55,6 +54,7 @@
       service:
         name: httpd
         state: started
+      failed_when: "'ERROR' in results.stdout"
 
     - name: Create a file
       file:
