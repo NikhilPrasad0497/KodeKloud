@@ -1,0 +1,54 @@
+# lastlog.yml
+---
+- hosts: node00
+  tasks:
+    - name: Emptying /var/log/lastlog everyday at 12:00 AM
+      cron:
+        name: Run Job at 0.0.*.*.*
+        minute: "0"
+        hour: "0"
+        job: "echo \"\" > /var/log/lastlog"
+
+# script_cron.yml
+---
+- hosts: node00
+  tasks:
+    - name: Free Memory Check
+      cron:
+        name: Check Free memory using /root/free.sh, schedule "0.*/2.*.*.*"
+        minute: "0"
+        hour: "*/2"
+        job: sh /root/free.sh
+
+# remove_cron.yml
+---
+- hosts: node00
+  tasks:
+    - name: remove old cron
+      cron:
+        name: "Check Memory"
+        state: absent
+
+# reboot.yml
+---
+- hosts: node00
+  tasks:
+    - name: Create a cron named cleanup to run after reboot
+      cron:
+        name: cleanup
+        special_time: reboot
+        job: rm -rf /tmp/*
+
+# yum_update.yml
+---
+- hosts: node00
+  tasks: 
+    - name: Create a Crontab file to update all packages on Sunday at 8:05 AM
+      cron:
+        name: yum update
+        user: root
+        cron_file: ansible_yum
+        job: yum -y update
+        minute: "5"
+        hour: "8"
+        weekday: "0" 

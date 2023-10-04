@@ -1,0 +1,66 @@
+# perm.yml
+---
+- hosts: web1
+  become: true
+  tasks:
+    - name: Create Empty File
+      file:
+        path: /opt/data/perm.txt
+        mode: '0640'
+        state: touch
+
+# index1.yml
+---
+- hosts: web1
+  become: true
+  tasks:
+    - name: Create Index.html file with Content
+      lineinfile:
+        path: /var/www/html/index.html
+        line: 'This line was added using Ansible lineinfile module!'
+        create: yes 
+
+# Find.yml
+---
+- hosts: web1
+  tasks:
+    - name: Find files
+      find:
+        paths: /opt/data
+        age: 2m
+        size: 1m
+        recurse: yes
+      register: file
+
+    - name: Copy files
+      command: "cp {{ item.path }} /opt"
+      with_items: "{{ file.files }}"
+
+# index2.yml
+---
+- hosts: web1
+  tasks:
+    - name: Insert Block of Content in File
+      blockinfile:
+        path: /var/www/html/index.html
+        block: |
+          Welcome to KodeKloud!
+          This is Ansible Lab.
+        owner: apache
+        group: apache
+        insertbefore: "BOF"
+
+# httpd.yml
+---
+- hosts: web1
+  tasks:
+    - name: change port from 80 to 8080 in httpd config file
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 80'
+        replace: 'Listen 8080'
+    
+    - name: Restart httpd service
+      service:
+        name: httpd
+        state: restarted

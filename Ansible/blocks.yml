@@ -1,0 +1,55 @@
+# blocks.yml
+---
+- hosts: all
+  tasks:
+    - debug: var=ansible_facts
+    - name: Install httpd and start service for CentOS Servers
+      block:
+        - yum:
+            name: httpd
+            state: installed
+        
+        - service:
+            name: httpd
+            state: started
+            enabled: true
+      when: ansible_facts['distribution'] == 'CentOS'
+
+# blocks_rescue.yml
+---
+- hosts: all
+  tasks:
+    - debug: var=ansible_facts
+    - name: Install httpd and start service for CentOS Servers
+      block:
+        - yum:
+            name: httpd
+            state: installed
+        
+        - service:
+            name: httpd
+            state: started
+            enabled: true
+      when: ansible_facts['distribution'] == 'CentOS'
+      rescue:
+        - name: Print when Failure
+          debug:
+            msg: Playbook has failed for "{{inventory_hostname}}" node
+
+# blocks_always.yml
+---
+- hosts: all
+  tasks:
+    - debug: var=ansible_facts
+    - name: Create a file
+      block:
+        - file:
+            path: /tmp/file.txt
+            state: touch
+        - name: This will fail
+          command: /bin/false
+        - debug:
+            msg: "This will never run"
+      always:
+        - debug:
+            msg: "This task always runs!"

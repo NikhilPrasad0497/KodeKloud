@@ -1,0 +1,131 @@
+# deploy-lamp-stack.yml
+- hosts: all
+  become: true
+  tasks:
+    - name: Install Dependencies on Web and DB Servers
+      yum:
+        name:
+          - libselinux-python
+          - libsemanage-python
+          - firewalld
+        state: installed
+
+# Install Mariadb and open Port on firewalld
+
+- hosts: lamp-db
+  become: true
+  tasks:
+    - name: Install Packages on DB Server
+      yum:
+        name:
+          - mariadb-server
+          - MySQL-python
+        state: installed
+    
+    - name: Copy MySQL Config File to /etc/my.cnf
+      template:
+        src: templates/my.cnf.j2
+        dest: /etc/my.cnf
+    
+    - name: Start Services for mariadb-server
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+    
+    - name: Start Service for firewalld Service
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Allow Port 3306/tcp on firewalld
+      firewalld:
+        port: 3306/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+        zone: public
+    
+    - name: Restart firewalld Service
+      service:
+        name: firewalld
+        state: restarted
+
+# Configure Database
+
+    - name: Add Database
+      mysql_db:
+        name: "{{ dbname }}"
+        state: present
+    
+    - name: Add Database User and Privs
+      mysql_user:
+        name: "{{ dbuser }}"
+        password: "{{ dbpassword }}"
+        priv: "*.*:ALL"
+        host: "{{hostvars['lampweb'].ansible_host}}"
+        state: present
+    
+    - name: Copy db-load-script.sql to /tmp/
+      template:
+        src: templates/db-load-script.sql.j2
+        dest: /tmp/db-load-script.sql
+
+    - name: Load Inventory File to DB
+      shell: mysql -f < /tmp/db-load-script.sql
+
+  # Install Web App
+
+- hosts: lampweb
+  become: true
+  tasks: 
+    - name: Install httpd, php, php-mysql
+      yum:
+        name:
+          - httpd
+          - php
+          - php-mysql
+          - git
+        state: installed
+    
+    - name: Start and Enable firewalld
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+    
+    - name: Allow http traffic through firewalld
+      firewalld:
+        port: "{{ httpd_port }}/tcp"
+        permanent: true
+        immediate: true
+        state: enabled
+    
+    - name: restart firewalld
+      service:
+        name: firewalld
+        state: restarted
+    
+    - name: Set Index.php as default page in httpd.conf
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: DirectoryIndex index.html
+        replace: DirectoryIndex index.php
+    
+    - name: Start and Enable httpd service
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+    
+    - name: Copy Code from Repository
+      git:
+        repo: "{{ repository }}"
+        dest: /var/www/html/
+        force: yes
+    
+    - name: Create the index.php file
+      template:
+        src: templates/index.php.j2
+        dest: /var/www/html/index.php

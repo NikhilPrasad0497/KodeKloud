@@ -1,0 +1,30 @@
+# create_user.yml
+---
+- hosts: all
+  tasks:
+    - group:
+        name: admin
+        state: present
+
+    - name: Create User Admin with Group Admin UID 2048
+      user:
+        name: admin
+        group: admin
+        uid: 2048
+
+# add_user.yml
+---
+- hosts: all
+  tasks:
+    - user:
+       name: neymarsabin
+       expires: 1704067199
+
+# remove_user.yml
+---
+- hosts: all
+  tasks:
+    - user:
+        name: admin
+        state: absent
+        remove: yes

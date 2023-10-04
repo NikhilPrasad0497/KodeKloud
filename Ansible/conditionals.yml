@@ -1,0 +1,111 @@
+# install_apache.yml
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: "Install Apache for Ubuntu"
+      apt:
+        name: apache2
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+    
+    - name: "Install httpd for CentOS"
+      yum:
+        name: httpd
+        state: present
+      when: ansible_distribution == 'CentOS'
+
+
+    # your code goes here...
+    # - install apache2 when Ubuntu
+    # - install httpd when CentOS
+
+# check_if_missing.yml
+---
+- hosts: web2
+  gather_facts: false
+  tasks:
+    - shell: dpkg -l git
+      register: check_if_git_installed
+      ignore_errors: true
+
+    # your code goes here...
+    - debug: var=check_if_git_installed
+
+    - shell: echo "Oops, git is missing" > /tmp/is_git_installed.txt
+      when: check_if_git_installed.rc != 0
+
+    - shell: git --version > /tmp/is_git_installed.txt
+      when: check_if_git_installed.rc == 0
+
+# copy_file_only_if.yml
+---
+- name: copy script if not present
+  gather_facts: no
+  hosts: web2
+  vars:
+    remote_dest: /usr/local/bin/report_status.sh
+  tasks:
+    - copy:
+        src: report_status.sh
+        dest: "{{remote_dest}}"
+      when: copy_file_only_if is defined and copy_file_only_if|bool
+      ###......................................problem is here ^
+      ### modify this so copy_file_only_if is evaluated as boolean.
+
+# make_it_executable.yml
+---
+- hosts: all
+  gather_facts: no
+  vars:
+    remote_dest: /usr/local/bin/report_status.sh
+  tasks:
+    - stat:
+        path: "{{remote_dest}}"
+      register: file_status
+
+    - debug: var=file_status.stat.executable
+
+    - shell: echo 'File report_status.sh is not executable, making it executable...' > /tmp/change.log
+      when: fiel_status.stat.exists and file_status.stat.executable == false
+
+    - name: Make the script executable
+      file:
+        path: "{{remote_dest}}"
+        mode: '0755'
+      when: fiel_status.stat.exists and file_status.stat.executable == false
+
+# check_if_vulnerable.yml
+---
+- hosts: web2
+  vars:
+    remote_dest: /usr/local/bin/report_status.sh
+  tasks:
+    - shell: sh "{{remote_dest}}"
+      register: check_if_vulnerable
+
+    - debug: var=check_if_vulnerable
+
+    - yum:
+        name: bash
+        state: latest
+      when: ansible_distribution == 'CentOS' and check_if_vulnerable.stdout == 'vulnerable'
+
+    - apt:
+        name: bash
+        state: latest
+      when: ansible_distribution == 'Ubuntu' and check_if_vulnerable.stdout == 'vulnerable'
+
+# install_packages.yml
+---
+- hosts: web2
+  gather_facts: no
+  tasks:
+    - name: install nginx
+      apt: name=nginx state=present
+      tags: [install_core]
+
+    - name: install extra packages
+      apt: name={{item}}
+      with_items: "{{extra_packages}}"
+      when: extra_packages is defined and extra_packages == 'htop'
