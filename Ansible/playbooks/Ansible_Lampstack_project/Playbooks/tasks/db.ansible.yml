@@ -1,0 +1,57 @@
+- name: Install Packages on DB Server
+  yum:
+    name:
+      - mariadb-server
+      - MySQL-python
+    state: installed
+- name: Copy MySQL Config File to /etc/my.cnf
+  template:
+    src: templates/my.cnf.j2
+    dest: /etc/my.cnf
+    mode: 0644
+- name: Start Services for mariadb-server
+  service:
+    name: mariadb
+    state: started
+    enabled: true
+- name: Start Service for firewalld Service
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+- name: Allow Port 3306/tcp on firewalld
+  firewalld:
+    port: 3306/tcp
+    permanent: true
+    immediate: true
+    state: enabled
+    zone: public
+
+- name: Restart firewalld Service
+  service:
+    name: firewalld
+    state: restarted
+
+# Configure Database
+
+- name: Add Database
+  mysql_db:
+    name: "{{ dbname }}"
+    state: present
+- name: Add Database User and Privs
+  mysql_user:
+    name: "{{ dbuser }}"
+    password: "{{ dbpassword }}"
+    priv: "*.*:ALL"
+    host: "{{ hostvars['lampweb'].ansible_host }}"
+    state: present
+- name: Copy db-load-script.sql to /tmp/
+  template:
+    src: templates/db-load-script.sql.j2
+    dest: /tmp/db-load-script.sql
+    mode: 0644
+
+- name: Load Inventory File to DB
+  shell: mysql -f < /tmp/db-load-script.sql
+  register: result
+  when: result.rc != 0

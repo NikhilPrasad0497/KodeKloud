@@ -1,0 +1,8 @@
+- hosts: all
+  become: true
+  tasks:
+    - block:
+      - name: set Best Practices for Linux on Aerospike Server
+        ansible.builtin.include_tasks:
+          file: Modules/min_free_kbytes.ansible.yml
+      become_user: root
