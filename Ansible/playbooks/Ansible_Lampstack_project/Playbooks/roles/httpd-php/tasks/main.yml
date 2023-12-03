@@ -1,0 +1,46 @@
+---
+# tasks file for httpd-php
+- name: Install httpd, php, php-mysql
+  yum:
+    name:
+      - httpd
+      - php
+      - php-mysql
+      - git
+    state: installed
+- name: Start and Enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+- name: Allow http traffic through firewalld
+  firewalld:
+    port: "{{ httpd_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+- name: restart firewalld
+  service:
+    name: firewalld
+    state: restarted
+- name: Set Index.php as default page in httpd.conf
+  replace:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: DirectoryIndex index.html
+    replace: DirectoryIndex index.php
+- name: Start and Enable httpd service
+  service:
+    name: httpd
+    state: started
+    enabled: true
+- name: Copy Code from Repository
+  git:
+    repo: "{{ repository }}"
+    dest: /var/www/html/
+    force: true
+- name: Create the index.php file
+  template:
+    src: templates/index.php.j2
+    dest: /var/www/html/index.php
+    mode: '0644'
+

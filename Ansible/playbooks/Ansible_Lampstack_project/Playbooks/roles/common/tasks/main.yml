@@ -1,0 +1,9 @@
+---
+# tasks file for common
+- name: Install Dependencies on Web and DB Servers
+  yum:
+    name:
+      - libselinux-python
+      - libsemanage-python
+      - firewalld
+    state: installed

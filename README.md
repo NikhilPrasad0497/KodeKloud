@@ -12,4 +12,4 @@ My Repository of KodeKloud Course Source Codes
 
 Contains Source Code for Project **Ansible_Lampstack_project**.
 
-Also has yaml files for different exercises like **Conditionals, Blocks, FileContent, Variables, User and Group** etc.
+Also has yaml files for different exercises like **Conditionals, Blocks, FileContent, Variables, User and Group, File Separation, Roles** etc.

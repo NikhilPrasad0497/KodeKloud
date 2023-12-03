@@ -1,23 +1,20 @@
 # deploy-lamp-stack.yml
 - hosts: all
   become: true
-  tasks:
-    - name: Common Tasks
-      ansible.builtin.include_tasks: tasks/common.yml
+  roles:
+    - common
 
 
 # Install Mariadb and open Port on firewalld
 
 - hosts: lamp-db
   become: true
-  tasks:
-    - name: DB Tasks
-      ansible.builtin.include_tasks: tasks/db.yml
+  roles:
+    - mysql
 
   # Install Web App
 
 - hosts: lampweb
   become: true
-  tasks:
-    - name: Web Tasks
-      ansible.builtin.include_tasks: tasks/web.yml
+  roles:
+    - httpd-php
